@@ -1,0 +1,65 @@
+version: "3.9"
+
+services:
+  # --- Database -----------------------------------------------------------
+  postgres:
+    image: postgres:13
+    container_name: attendance_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin234
+      POSTGRES_DB: attendance_system
+    ports:
+      - "5447:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Automatically runs the schema on first start‑up
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  # --- Backend API --------------------------------------------------------
+  backend:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+    container_name: attendance_backend
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    environment:
+      PORT: 3105
+      DB_USER: postgres
+      DB_PASSWORD: admin234
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: attendance_system
+    ports:
+      - "3105:3105"
+
+  # --- Employee‑facing Front‑end -----------------------------------------
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+    container_name: attendance_frontend
+    depends_on:
+      - backend
+    restart: unless-stopped
+    ports:
+      - "7023:80"
+
+  # --- HR portal Front‑end -----------------------------------------------
+  hr:
+    build:
+      context: ./HR
+      dockerfile: Dockerfile
+    container_name: attendance_hr
+    depends_on:
+      - backend
+    restart: unless-stopped
+    ports:
+      - "7024:80"
+
+volumes:
+  pgdata:
+
